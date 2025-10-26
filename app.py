@@ -57,6 +57,38 @@ def generate_title_api():
         print(f"Error during AI generation: {e}")
         return jsonify({'error': 'Failed to generate titles from AI.'}), 500
 
+@app.route('/api/generate/rationale', methods=['POST'])
+def generate_rationale_api():
+    if not model:
+        return jsonify({'error': 'Generative AI model not configured.'}), 500
+
+    if not request.json or 'title' not in request.json:
+        return jsonify({'error': 'Missing title'}), 400
+
+    thesis_title = request.json['title']
+
+    if not thesis_title:
+        return jsonify({'error': 'Please provide a thesis title.'}), 400
+
+    # Create a prompt for the AI
+    prompt = f"Generate a compelling rationale for a thesis titled '{thesis_title}'. The rationale should be well-structured, academic in tone, and suitable for a Filipino university. Explain the problem, the gap in the current research, and the significance of the study. Return only the generated text for the rationale, with no introductory or conversational text."
+
+    try:
+        response = model.generate_content(prompt)
+
+        # Check for safety blocks before accessing the text
+        if response.prompt_feedback.block_reason:
+            block_reason = response.prompt_feedback.block_reason
+            # We can keep this log for debugging on the server
+            print(f"--- AI Response Blocked --- \nReason: {block_reason}\n--------------------------")
+            return jsonify({'error': f'The AI response was blocked for safety reasons: {block_reason}. Please try rephrasing your title.'}), 400
+
+        generated_text = response.text
+        return jsonify({'rationale': generated_text.strip()})
+    except Exception as e:
+        print(f"Error during AI generation: {e}")
+        return jsonify({'error': 'Failed to generate rationale from AI.'}), 500
+
 
 @app.route('/')
 def index():
