@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Title - Thesis Helper</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Thesis Helper</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="title.html">Title</a></li>
+                <li><a href="rationale.html">Rationale</a></li>
+                <li><a href="statement-of-the-problem.html">Statement of the Problem</a></li>
+                <li><a href="scope-and-delimitation.html">Scope and Delimitation</a></li>
+                <li><a href="significance-of-the-study.html">Significance of the Study</a></li>
+                <li><a href="literature-review.html">Review of Related Literature</a></li>
+                <li><a href="methodology.html">Research Methodology</a></li>
+                <li><a href="definition-of-terms.html">Definition of Terms</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h2>Title Suggester</h2>
+        <form id="title-form">
+            <label for="keywords">Enter keywords (comma-separated):</label><br>
+            <input type="text" id="keywords" name="keywords" size="50"><br><br>
+            <input type="submit" value="Generate Titles">
+        </form>
+        <div id="error-message" style="color: red;"></div>
+        <div id="titles-output"></div>
+    </main>
+    <script src="js/title-generator.js"></script>
+</body>
+</html>
