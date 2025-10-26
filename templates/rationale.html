@@ -3,7 +3,17 @@
 {% block title %}Rationale{% endblock %}
 
 {% block content %}
-    <h2>Rationale</h2>
-    <p>Write a few sentences about the rationale of your study. What is the problem and why is it important to solve?</p>
-    <textarea rows="10" cols="80"></textarea>
+    <h2>Rationale Generator</h2>
+    <form id="rationale-form">
+        <label for="thesis-title">Enter your working thesis title:</label><br>
+        <input type="text" id="thesis-title" name="thesis-title" size="80"><br><br>
+        <input type="submit" value="Generate Rationale">
+    </form>
+    <div id="error-message" style="color: red;"></div>
+    <br>
+    <textarea id="rationale-output" rows="20" cols="80" placeholder="Your AI-generated rationale will appear here..."></textarea>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/rationale-generator.js') }}"></script>
 {% endblock %}
