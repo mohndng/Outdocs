@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - Thesis Helper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Thesis Helper</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/title">Title</a></li>
+                <li><a href="/rationale">Rationale</a></li>
+                <li><a href="/statement-of-the-problem">Statement of the Problem</a></li>
+                <li><a href="/scope-and-delimitation">Scope and Delimitation</a></li>
+                <li><a href="/significance-of-the-study">Significance of the Study</a></li>
+                <li><a href="/literature-review">Review of Related Literature</a></li>
+                <li><a href="/methodology">Research Methodology</a></li>
+                <li><a href="/definition-of-terms">Definition of Terms</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
