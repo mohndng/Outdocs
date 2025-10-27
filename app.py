@@ -1,27 +1,54 @@
 from flask import Flask, render_template, request, jsonify
-import google.generativeai as genai
+import requests
 import os
 import re
+import json
 
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-try:
-    # Configure the Gemini API key from environment variables
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    # Initialize the Gemini Pro model
-    model = genai.GenerativeModel('gemini-1.0-pro')
-except Exception as e:
-    # If the API key is not set or there's an issue, the model will be None
-    print(f"Error configuring Generative AI: {e}")
-    model = None
+GEMINI_API_KEY = os.environ.get("GOOGLE_API_KEY")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent"
+
+# --- HELPER FUNCTION ---
+def call_gemini_api(prompt):
+    """A helper function to make direct calls to the Gemini API."""
+    if not GEMINI_API_KEY:
+        return None, "The AI model is not configured. Please set the GOOGLE_API_KEY."
+
+    headers = {'Content-Type': 'application/json'}
+    params = {'key': GEMINI_API_KEY}
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    }
+
+    try:
+        response = requests.post(GEMINI_API_URL, headers=headers, params=params, json=payload)
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+        data = response.json()
+
+        # Check for safety blocks or empty candidates in the response
+        if not data.get('candidates'):
+            feedback = data.get('promptFeedback', {})
+            block_reason = feedback.get('blockReason', 'Unknown reason')
+            return None, f"The AI response was blocked. Reason: {block_reason}. Please try rephrasing your input."
+
+        return data, None
+    except requests.exceptions.HTTPError as http_err:
+        # Extract the specific error message from Google's response if possible
+        error_details = response.json().get('error', {}).get('message', str(http_err))
+        return None, f"API Error: {error_details}"
+    except Exception as e:
+        return None, f"An unexpected error occurred: {e}"
 
 # --- API ROUTES ---
 @app.route('/api/generate/title', methods=['POST'])
 def generate_title_api():
-    if not model:
-        return jsonify({'error': 'The AI model is not configured. Please set the GOOGLE_API_KEY.'}), 500
-
     if not request.json or 'keywords' not in request.json:
         return jsonify({'error': 'Missing keywords in request.'}), 400
 
@@ -29,20 +56,18 @@ def generate_title_api():
     if not keywords or not isinstance(keywords, list) or len(keywords) == 0:
         return jsonify({'error': 'Please provide a list of keywords.'}), 400
 
-    # Create a precise prompt for the AI
     prompt = f"Generate exactly 5 academic thesis titles for a study in the Philippines about: {', '.join(keywords)}. The titles should be formal and suitable for a university thesis. Return only a numbered list of the titles, with no introductory text, explanations, or conversational filler."
 
-    try:
-        response = model.generate_content(prompt)
-        generated_text = response.text
+    data, error = call_gemini_api(prompt)
+    if error:
+        return jsonify({'error': error}), 500
 
-        # Clean the AI's response to extract just the titles
+    try:
+        generated_text = data['candidates'][0]['content']['parts'][0]['text']
         potential_titles = generated_text.split('\n')
         cleaned_titles = []
         for title in potential_titles:
-            # Remove list markers (e.g., "1. ", "* ") and surrounding quotes
             cleaned_title = re.sub(r'^\s*\d+\.\s*|\*\s*', '', title).strip('\'"')
-            # Ensure the title is a meaningful length
             if len(cleaned_title) > 20:
                  cleaned_titles.append(cleaned_title)
 
@@ -50,15 +75,11 @@ def generate_title_api():
             return jsonify({'error': 'The AI returned an unexpected format. Please try again.'}), 500
 
         return jsonify({'titles': cleaned_titles})
-    except Exception as e:
-        print(f"Error during AI generation: {e}")
-        return jsonify({'error': f'An error occurred while communicating with the AI: {e}'}), 500
+    except (KeyError, IndexError) as e:
+        return jsonify({'error': f'Failed to parse the AI response: {e}'}), 500
 
 @app.route('/api/generate/rationale', methods=['POST'])
 def generate_rationale_api():
-    if not model:
-        return jsonify({'error': 'The AI model is not configured. Please set the GOOGLE_API_KEY.'}), 500
-
     if not request.json or 'title' not in request.json:
         return jsonify({'error': 'Missing title in request.'}), 400
 
@@ -66,19 +87,17 @@ def generate_rationale_api():
     if not thesis_title:
         return jsonify({'error': 'Please provide a thesis title.'}), 400
 
-    # Create a precise prompt for the AI
     prompt = f"Generate a compelling rationale for a thesis titled '{thesis_title}'. The rationale should be well-structured, academic in tone, and suitable for a Filipino university. Explain the problem, the gap in the current research, and the significance of the study. Return only the generated text for the rationale, with no introductory or conversational text."
 
-    try:
-        response = model.generate_content(prompt)
-        # Check if the response was blocked for safety reasons
-        if response.prompt_feedback.block_reason:
-            return jsonify({'error': f'The request was blocked by the AI for safety reasons: {response.prompt_feedback.block_reason}. Please rephrase your title.'}), 400
+    data, error = call_gemini_api(prompt)
+    if error:
+        return jsonify({'error': error}), 500
 
-        return jsonify({'rationale': response.text.strip()})
-    except Exception as e:
-        print(f"Error during AI generation: {e}")
-        return jsonify({'error': f'An error occurred while communicating with the AI: {e}'}), 500
+    try:
+        generated_text = data['candidates'][0]['content']['parts'][0]['text']
+        return jsonify({'rationale': generated_text.strip()})
+    except (KeyError, IndexError) as e:
+        return jsonify({'error': f'Failed to parse the AI response: {e}'}), 500
 
 # --- FRONTEND ROUTES ---
 @app.route('/')
@@ -92,5 +111,4 @@ def about():
     return render_template('about.html')
 
 if __name__ == '__main__':
-    # This allows the app to be run locally with `python app.py`
     app.run(debug=True)
