@@ -25,14 +25,14 @@ document.getElementById('rationale-form').addEventListener('submit', function(ev
         },
         body: JSON.stringify({ title: thesisTitle }),
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.error) {
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok) {
+            // Handle HTTP errors with a specific message from the server
+            errorMessage.textContent = data.error || 'An unknown error occurred.';
+            rationaleOutput.value = '';
+        } else if (data.error) {
+            // Handle application-specific errors
             errorMessage.textContent = data.error;
             rationaleOutput.value = '';
         } else {
@@ -40,8 +40,8 @@ document.getElementById('rationale-form').addEventListener('submit', function(ev
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        errorMessage.textContent = 'An error occurred while generating the rationale. Please try again.';
+        console.error('Fetch Error:', error);
+        errorMessage.textContent = 'A network error occurred. Please try again.';
         rationaleOutput.value = '';
     })
     .finally(() => {
