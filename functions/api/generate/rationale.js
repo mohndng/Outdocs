@@ -32,6 +32,16 @@ export async function onRequest(context) {
       }),
     });
 
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.json();
+      console.error("Gemini API Error:", JSON.stringify(errorData, null, 2));
+      const errorMessage = errorData?.error?.message || 'Failed to communicate with the AI service.';
+      return new Response(JSON.stringify({ error: `API Error: ${errorMessage}` }), {
+        status: geminiResponse.status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const geminiData = await geminiResponse.json();
 
     if (!geminiData.candidates || geminiData.candidates.length === 0) {
