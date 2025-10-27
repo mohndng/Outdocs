@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thesis Generator</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <a href="/" class="logo">ThesisGen</a>
+                <nav>
+                    <a href="/">Home</a>
+                    <a href="/about">About</a>
+                </nav>
+            </div>
+        </header>
+        <h1 class="page-title">Thesis Title Generator</h1>
+        <form id="title-form">
+            <input type="text" id="keywords" placeholder="Enter keywords..." required>
+            <button type="submit">Generate Titles</button>
+        </form>
+        <div id="titles-output" class="output-area"></div>
+        <hr>
+        <h1>Rationale Generator</h1>
+        <form id="rationale-form">
+            <input type="text" id="selected-title" placeholder="Select a title above..." required>
+            <button type="submit">Generate Rationale</button>
+        </form>
+        <div id="rationale-output" class="output-area"></div>
+        <footer>
+            <p>&copy; 2024 ThesisGen. All rights reserved.</p>
+        </footer>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

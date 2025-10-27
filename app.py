@@ -5,126 +5,92 @@ import re
 
 app = Flask(__name__)
 
-# Configure the Gemini API key
+# --- CONFIGURATION ---
 try:
+    # Configure the Gemini API key from environment variables
     genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('models/gemini-pro-latest')
+    # Initialize the Gemini Pro model
+    model = genai.GenerativeModel('gemini-1.0-pro')
 except Exception as e:
+    # If the API key is not set or there's an issue, the model will be None
     print(f"Error configuring Generative AI: {e}")
     model = None
 
+# --- API ROUTES ---
 @app.route('/api/generate/title', methods=['POST'])
 def generate_title_api():
     if not model:
-        return jsonify({'error': 'Generative AI model not configured.'}), 500
+        return jsonify({'error': 'The AI model is not configured. Please set the GOOGLE_API_KEY.'}), 500
 
     if not request.json or 'keywords' not in request.json:
-        return jsonify({'error': 'Missing keywords'}), 400
+        return jsonify({'error': 'Missing keywords in request.'}), 400
 
     keywords = request.json['keywords']
+    if not keywords or not isinstance(keywords, list) or len(keywords) == 0:
+        return jsonify({'error': 'Please provide a list of keywords.'}), 400
 
-    if not keywords or len(keywords) == 0:
-        return jsonify({'error': 'Please provide at least one keyword.'}), 400
-
-    # Create a prompt for the AI
+    # Create a precise prompt for the AI
     prompt = f"Generate exactly 5 academic thesis titles for a study in the Philippines about: {', '.join(keywords)}. The titles should be formal and suitable for a university thesis. Return only a numbered list of the titles, with no introductory text, explanations, or conversational filler."
 
     try:
         response = model.generate_content(prompt)
-        # Assuming the response text contains a list of titles, separated by newlines.
-        # We'll need to parse this.
         generated_text = response.text
-        # Split by newline and filter for lines that seem to be titles (e.g., start with a number or are not just conversational)
-        potential_titles = [line.strip() for line in generated_text.split('\n') if line.strip()]
 
-        # Further clean the titles to remove numbering, asterisks, and quotes
+        # Clean the AI's response to extract just the titles
+        potential_titles = generated_text.split('\n')
         cleaned_titles = []
         for title in potential_titles:
-            # Remove common list markers like "1. ", "* ", etc.
-            cleaned_title = re.sub(r'^\s*\d+\.\s*|\*\s*', '', title)
-            # Remove surrounding quotes
-            cleaned_title = cleaned_title.strip('\'"')
-            # A simple heuristic: if it's a reasonably long sentence, it's probably a title.
+            # Remove list markers (e.g., "1. ", "* ") and surrounding quotes
+            cleaned_title = re.sub(r'^\s*\d+\.\s*|\*\s*', '', title).strip('\'"')
+            # Ensure the title is a meaningful length
             if len(cleaned_title) > 20:
                  cleaned_titles.append(cleaned_title)
 
-        # If after cleaning we have no titles, it might be an error or unexpected format.
         if not cleaned_titles:
-            return jsonify({'error': 'Could not parse titles from the AI response.'}), 500
+            return jsonify({'error': 'The AI returned an unexpected format. Please try again.'}), 500
 
         return jsonify({'titles': cleaned_titles})
     except Exception as e:
         print(f"Error during AI generation: {e}")
-        return jsonify({'error': 'Failed to generate titles from AI.'}), 500
+        return jsonify({'error': f'An error occurred while communicating with the AI: {e}'}), 500
 
 @app.route('/api/generate/rationale', methods=['POST'])
 def generate_rationale_api():
     if not model:
-        return jsonify({'error': 'Generative AI model not configured.'}), 500
+        return jsonify({'error': 'The AI model is not configured. Please set the GOOGLE_API_KEY.'}), 500
 
     if not request.json or 'title' not in request.json:
-        return jsonify({'error': 'Missing title'}), 400
+        return jsonify({'error': 'Missing title in request.'}), 400
 
     thesis_title = request.json['title']
-
     if not thesis_title:
         return jsonify({'error': 'Please provide a thesis title.'}), 400
 
-    # Create a prompt for the AI
+    # Create a precise prompt for the AI
     prompt = f"Generate a compelling rationale for a thesis titled '{thesis_title}'. The rationale should be well-structured, academic in tone, and suitable for a Filipino university. Explain the problem, the gap in the current research, and the significance of the study. Return only the generated text for the rationale, with no introductory or conversational text."
 
     try:
         response = model.generate_content(prompt)
-
-        # Check for safety blocks before accessing the text
+        # Check if the response was blocked for safety reasons
         if response.prompt_feedback.block_reason:
-            block_reason = response.prompt_feedback.block_reason
-            # We can keep this log for debugging on the server
-            print(f"--- AI Response Blocked --- \nReason: {block_reason}\n--------------------------")
-            return jsonify({'error': f'The AI response was blocked for safety reasons: {block_reason}. Please try rephrasing your title.'}), 400
+            return jsonify({'error': f'The request was blocked by the AI for safety reasons: {response.prompt_feedback.block_reason}. Please rephrase your title.'}), 400
 
-        generated_text = response.text
-        return jsonify({'rationale': generated_text.strip()})
+        return jsonify({'rationale': response.text.strip()})
     except Exception as e:
         print(f"Error during AI generation: {e}")
-        return jsonify({'error': 'Failed to generate rationale from AI.'}), 500
+        return jsonify({'error': f'An error occurred while communicating with the AI: {e}'}), 500
 
-
+# --- FRONTEND ROUTES ---
 @app.route('/')
 def index():
+    """Serves the main page."""
     return render_template('index.html')
 
-@app.route('/title')
-def title():
-    return render_template('title.html')
-
-@app.route('/rationale')
-def rationale():
-    return render_template('rationale.html')
-
-@app.route('/statement-of-the-problem')
-def statement_of_the_problem():
-    return render_template('statement_of_the_problem.html')
-
-@app.route('/scope-and-delimitation')
-def scope_and_delimitation():
-    return render_template('scope_and_delimitation.html')
-
-@app.route('/significance-of-the-study')
-def significance_of_the_study():
-    return render_template('significance_of_the_study.html')
-
-@app.route('/literature-review')
-def literature_review():
-    return render_template('literature_review.html')
-
-@app.route('/methodology')
-def methodology():
-    return render_template('methodology.html')
-
-@app.route('/definition-of-terms')
-def definition_of_terms():
-    return render_template('definition_of_terms.html')
+@app.route('/about')
+def about():
+    """Serves the about page."""
+    return render_template('about.html')
 
 if __name__ == '__main__':
+    # This allows the app to be run locally with `python app.py`
     app.run(debug=True)
