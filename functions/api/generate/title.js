@@ -5,14 +5,14 @@ export async function onRequest(context) {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  const model = 'gemini-pro';
+  const model = 'gemini-1.0-pro';
   const apiKey = env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     return new Response('GOOGLE_API_KEY not set', { status: 500 });
   }
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const requestData = await request.json();
