@@ -27,14 +27,14 @@ document.getElementById('title-form').addEventListener('submit', function(event)
         },
         body: JSON.stringify({ keywords: keywords }),
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.error) {
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok) {
+            // Handle HTTP errors with a specific message from the server
+            errorMessage.textContent = data.error || 'An unknown error occurred.';
+            titlesOutput.innerHTML = '';
+        } else if (data.error) {
+            // Handle application-specific errors
             errorMessage.textContent = data.error;
             titlesOutput.innerHTML = '';
         } else {
@@ -47,8 +47,8 @@ document.getElementById('title-form').addEventListener('submit', function(event)
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        errorMessage.textContent = 'An error occurred while generating titles. Please try again.';
+        console.error('Fetch Error:', error);
+        errorMessage.textContent = 'A network error occurred. Please try again.';
         titlesOutput.innerHTML = '';
     })
     .finally(() => {

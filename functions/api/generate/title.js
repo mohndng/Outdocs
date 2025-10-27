@@ -33,6 +33,18 @@ export async function onRequest(context) {
     });
 
     const geminiData = await geminiResponse.json();
+
+    if (!geminiData.candidates || geminiData.candidates.length === 0) {
+      let errorMessage = 'The AI did not return a valid response.';
+      if (geminiData.promptFeedback && geminiData.promptFeedback.blockReason) {
+        errorMessage = `The AI response was blocked. Reason: ${geminiData.promptFeedback.blockReason}. Please try rephrasing your keywords.`;
+      }
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const generatedText = geminiData.candidates[0].content.parts[0].text;
     const potential_titles = generatedText.split('\n').filter(line => line.trim());
     const cleaned_titles = potential_titles.map(title => {
