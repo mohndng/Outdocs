@@ -1,2 +1,2 @@
 # Outdocs
-Helps creating useful summaries and information for thesis making.
+Chatbot integrated with Gemini AI models
